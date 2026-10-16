@@ -1,0 +1,7 @@
+{
+    "wifi_interface": "Wi-Fi",
+    "wifi_networks": [
+        "SSID_1",
+        "SSID_2"
+    ]
+}

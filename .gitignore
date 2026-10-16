@@ -1,0 +1,10 @@
+# Local Wi-Fi settings
+wifi_networks.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/

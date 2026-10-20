@@ -60,7 +60,7 @@ def check_wifi_profiles(wifi_networks):
 # ================================================
 #   Get current SSID
 # ================================================
-def get_wifi_ssid():
+def get_wifi_ssid(wifi_interface):
     result = subprocess.run(
         ["netsh", "wlan", "show", "interfaces"],
         capture_output=True,
@@ -68,12 +68,18 @@ def get_wifi_ssid():
         encoding="utf-8",
     )
 
+    target_interface = False
+
     for line in result.stdout.splitlines():
         line = line.strip()
 
-        if line.startswith("SSID"):
-            ssid = line.split(":", 1)[1].strip()
-            return ssid
+        if line.startswith("名前"):
+            interface_name = line.split(":", 1)[1].strip()
+            target_interface = interface_name == wifi_interface
+            continue
+
+        if target_interface and line.startswith("SSID"):
+            return line.split(":", 1)[1].strip()
 
     return None
 
@@ -81,9 +87,36 @@ def get_wifi_ssid():
 # ================================================
 #   Wait for disconnect
 # ================================================
-def wait_for_disconnect():
-    while get_wifi_ssid() is not None:
+def wait_for_disconnect(wifi_interface):
+    while get_wifi_ssid(wifi_interface) is not None:
         time.sleep(0.1)
+
+
+# ================================================
+#   Disconnect Wi-Fi
+# ================================================
+def disconnect_wifi(wifi_interface):
+    current_ssid = get_wifi_ssid(wifi_interface)
+
+    if current_ssid is None:
+        print("すでにWi-Fiは切断されています。")
+        return True
+
+    subprocess.run(
+        [
+            "netsh",
+            "wlan",
+            "disconnect",
+            f"interface={wifi_interface}",
+        ],
+        check=True,
+    )
+
+    wait_for_disconnect(wifi_interface)
+
+    print(f"{current_ssid} から切断しました。")
+
+    return True
 
 
 # ================================================
@@ -106,29 +139,19 @@ def connect_wifi(ssid, wifi_interface):
 #   Switch Wi-Fi
 # ================================================
 def switch_wifi(ssid, wifi_interface):
-    current_ssid = get_wifi_ssid()
+    current_ssid = get_wifi_ssid(wifi_interface)
 
     if current_ssid == ssid:
         print(f"すでに {ssid} に接続されています。")
         return True
 
-    subprocess.run(
-        [
-            "netsh",
-            "wlan",
-            "disconnect",
-            f"interface={wifi_interface}",
-        ],
-        check=True,
-    )
-
-    wait_for_disconnect()
+    disconnect_wifi(wifi_interface)
     time.sleep(0.5)
 
     connect_wifi(ssid, wifi_interface)
 
     time.sleep(0.5)
-    current_ssid = get_wifi_ssid()
+    current_ssid = get_wifi_ssid(wifi_interface)
 
     if current_ssid != ssid:
         print("接続に失敗しました。3秒後に再接続します。")
@@ -136,8 +159,8 @@ def switch_wifi(ssid, wifi_interface):
         connect_wifi(ssid, wifi_interface)
         time.sleep(1)
 
-    current_ssid = get_wifi_ssid()
-    print("Current SSID: ", current_ssid)
+    current_ssid = get_wifi_ssid(wifi_interface)
+    print("Current SSID:", current_ssid)
 
     return current_ssid == ssid
 
@@ -193,28 +216,38 @@ def main():
         input("ENTERを押してください...")
         return
 
-    current_ssid = get_wifi_ssid()
+    current_ssid = get_wifi_ssid(wifi_interface)
 
+    print(f"使用するインターフェイス: {wifi_interface}")
     print(f"現在接続されているネットワーク: {current_ssid}")
     print()
 
-    print("接続可能なWi-Fiネットワーク")
+    print("Wi-Fiメニュー")
     print("-" * 40)
     print("0: キャンセル")
+    print("1: Wi-Fi切断")
 
-    for number, ssid in enumerate(wifi_networks, start=1):
+    for number, ssid in enumerate(wifi_networks, start=2):
         print(f"{number}: {ssid}")
 
     print("-" * 40)
 
     try:
-        number = int(input("どのSSIDに接続しますか？ 番号を入力してください: "))
+        number = int(input("番号を入力してください: "))
 
         if number == 0:
             print("キャンセルしました。")
             return
-        
-        ssid = wifi_networks[number - 1]
+
+        if number == 1:
+            print()
+            print(f"切断するインターフェイス: {wifi_interface}")
+            disconnect_wifi(wifi_interface)
+            input("ENTERを押してください...")
+            return
+
+        ssid = wifi_networks[number - 2]
+
     except (ValueError, IndexError):
         print("正しい番号を入力してください。")
         return

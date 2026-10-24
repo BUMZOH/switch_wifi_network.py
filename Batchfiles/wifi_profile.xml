@@ -3,10 +3,10 @@
 <!-- keyMaterialにパスワードを入力 -->
 
 <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
-    <name>KYOWA-MC3</name>
+    <name>KYOWA-MC4</name>
     <SSIDConfig>
         <SSID>
-            <name>KYOWA-MC3</name>
+            <name>KYOWA-MC4</name>
         </SSID>
     </SSIDConfig>
     <connectionType>ESS</connectionType>

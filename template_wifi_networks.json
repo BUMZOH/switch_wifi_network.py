@@ -1,7 +1,14 @@
 {
     "wifi_interface": "Wi-Fi",
+    
     "wifi_networks": [
-        "SSID_1",
-        "SSID_2"
+        {
+            "ssid": "ssid_name1",
+            "comment": "comment1"
+        },
+        {
+            "ssid": "ssid_name2",
+            "comment": "comment2"
+        }
     ]
 }

@@ -38,9 +38,9 @@ def check_wifi_interface(wifi_interface):
 
 
 # ================================================
-#   Check Wi-Fi profiles
+#   Check Wi-Fi profile
 # ================================================
-def check_wifi_profiles(wifi_networks):
+def check_wifi_profile(ssid):
     result = subprocess.run(
         ["netsh", "wlan", "show", "profiles"],
         capture_output=True,
@@ -48,13 +48,7 @@ def check_wifi_profiles(wifi_networks):
         encoding="utf-8",
     )
 
-    missing_profiles = []
-
-    for ssid in wifi_networks:
-        if ssid not in result.stdout:
-            missing_profiles.append(ssid)
-
-    return missing_profiles
+    return ssid in result.stdout
 
 
 # ================================================
@@ -173,18 +167,17 @@ def switch_wifi_network(ssid):
 
     wifi_interface = settings["wifi_interface"]
     wifi_networks = settings["wifi_networks"]
+    ssid_list = [network["ssid"] for network in wifi_networks]
 
     if not check_wifi_interface(wifi_interface):
         print(f'Wi-Fiインターフェイス "{wifi_interface}" が見つかりません。')
         return False
 
-    if ssid not in wifi_networks:
+    if ssid not in ssid_list:
         print(f'Wi-Fiネットワーク "{ssid}" が設定されていません。')
         return False
 
-    missing_profiles = check_wifi_profiles([ssid])
-
-    if missing_profiles:
+    if not check_wifi_profile(ssid):
         print(f'Wi-Fiプロファイル "{ssid}" が見つかりません。')
         return False
 
@@ -205,16 +198,13 @@ def main():
         input("ENTERを押してください...")
         return
 
-    missing_profiles = check_wifi_profiles(wifi_networks)
+    for network in wifi_networks:
+        ssid = network["ssid"]
 
-    if missing_profiles:
-        print("以下のWi-Fiプロファイルが見つかりません。")
-
-        for ssid in missing_profiles:
-            print(f"  {ssid}")
-
-        input("ENTERを押してください...")
-        return
+        if not check_wifi_profile(ssid):
+            print(f'Wi-Fiプロファイル "{ssid}" が見つかりません。')
+            input("ENTERを押してください...")
+            return
 
     current_ssid = get_wifi_ssid(wifi_interface)
 
@@ -227,8 +217,11 @@ def main():
     print("0: キャンセル")
     print("1: Wi-Fi切断")
 
-    for number, ssid in enumerate(wifi_networks, start=2):
-        print(f"{number}: {ssid}")
+    for number, network in enumerate(wifi_networks, start=2):
+        ssid = network["ssid"]
+        comment = network["comment"]
+
+        print(f"{number}: {ssid:<20} {comment}")
 
     print("-" * 40)
 
@@ -246,7 +239,7 @@ def main():
             input("ENTERを押してください...")
             return
 
-        ssid = wifi_networks[number - 2]
+        ssid = wifi_networks[number - 2]["ssid"]
 
     except (ValueError, IndexError):
         print("正しい番号を入力してください。")
